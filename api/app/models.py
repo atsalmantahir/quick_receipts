@@ -1,3 +1,4 @@
+
 from datetime import datetime
 from app import db
 from sqlalchemy.dialects.postgresql import JSON
@@ -8,6 +9,14 @@ class Role(db.Model):
     role_id = db.Column(db.Integer, primary_key=True)
     role_name = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.Text)
+    permissions = db.relationship('RolePermission', backref='role', lazy=True)
+
+# RolePermission model
+class RolePermission(db.Model):
+    __tablename__ = 'role_permissions'
+    role_permission_id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.role_id'), nullable=False)
+    permission = db.Column(db.String(100), nullable=False)
 
 # User model
 class User(db.Model):
@@ -24,6 +33,19 @@ class User(db.Model):
 
     role = db.relationship('Role', backref='users')
 
+# Subscription model
+class Subscription(db.Model):
+    __tablename__ = 'subscriptions'
+    subscription_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    plan_type = db.Column(db.String(50), nullable=False)  # 'free_trial', 'monthly', 'yearly'
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+
+    user = db.relationship('User', backref='subscriptions')
+
+# Receipt model
 class Receipt(db.Model):
     __tablename__ = 'receipts'
     receipt_id = db.Column(db.Integer, primary_key=True)
@@ -37,6 +59,19 @@ class Receipt(db.Model):
 
     user = db.relationship('User', backref='receipts')
 
+# OCR Data model
+class OcrData(db.Model):
+    __tablename__ = 'ocr_data'
+    ocr_data_id = db.Column(db.Integer, primary_key=True)
+    receipt_id = db.Column(db.Integer, db.ForeignKey('receipts.receipt_id'), nullable=False)
+    field_type = db.Column(db.String(100), nullable=False)  # e.g., 'total_amount', 'purchase_time'
+    text_value = db.Column(db.String(255), nullable=False)  # Raw OCR value (e.g., '15:30:05', '836')
+    confidence = db.Column(db.Float, nullable=False)  # Confidence score for this field (e.g., 0.98)
+    normalized_value = db.Column(db.String(255))  # Normalized value if applicable (e.g., '836' instead of '836 JPY')
+
+    receipt = db.relationship('Receipt', backref='ocr_data')
+
+# AuditLog model
 class AuditLog(db.Model):
     __tablename__ = 'audit_logs'
     audit_log_id = db.Column(db.Integer, primary_key=True)
@@ -63,4 +98,3 @@ class Transaction(db.Model):
 
     user = db.relationship('User', backref='transactions')
     receipt = db.relationship('Receipt', backref='transactions')
-
