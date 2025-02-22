@@ -20,3 +20,5 @@ bash
 Copy
 flask db upgrade
 This will create the tables in the QuickRecieptDb database based on the models you've defined.
+
+test
