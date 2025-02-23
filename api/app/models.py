@@ -58,6 +58,8 @@ class Receipt(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref='receipts')
+    # Ensure the backref is unique by renaming 'ocr_data' to something else like 'receipt_ocr_data'
+    ocr_data = db.relationship('OcrData', backref='receipt_data', lazy=True)
 
 # OCR Data model
 class OcrData(db.Model):
@@ -69,7 +71,8 @@ class OcrData(db.Model):
     confidence = db.Column(db.Float, nullable=False)  # Confidence score for this field (e.g., 0.98)
     normalized_value = db.Column(db.String(255))  # Normalized value if applicable (e.g., '836' instead of '836 JPY')
 
-    receipt = db.relationship('Receipt', backref='ocr_data')
+    # Ensure the backref is unique by renaming 'receipt' to something else like 'receipt_data'
+    receipt = db.relationship('Receipt', backref='ocr_data_related')
 
 # AuditLog model
 class AuditLog(db.Model):
@@ -98,3 +101,20 @@ class Transaction(db.Model):
 
     user = db.relationship('User', backref='transactions')
     receipt = db.relationship('Receipt', backref='transactions')
+
+
+class Item(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f'<Item {self.name}>'
+
+    def to_dict(self):
+        """Convert the SQLAlchemy object to a dictionary"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'price': self.price
+        }

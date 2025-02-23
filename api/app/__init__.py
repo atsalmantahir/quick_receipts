@@ -21,11 +21,17 @@ def create_app(config_object='app.config.Config'):
     # Initialize API
     api = Api(app, doc='/swagger/')
 
-    # Register Blueprints
-    from .controllers.auth_controller import api as auth_api
-    from .controllers.user_controller import api as user_api
+    # Define the common API prefix
+    api_prefix = '/api'
 
-    app.register_blueprint(auth_api, url_prefix='/auth')
-    app.register_blueprint(user_api, url_prefix='/users')
+    # Register Blueprints
+    from .controllers.users_controller import api as users_api
+    from .controllers.roles_controller import api as roles_api
+
+    # Add namespaces with the '/api' prefix
+    api.add_namespace(users_api, path=f'{api_prefix}/users')
+    api.add_namespace(roles_api, path=f'{api_prefix}/roles')
 
     return app
+
+
