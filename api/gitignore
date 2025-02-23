@@ -1,4 +1,53 @@
-/venv
-
-*.pyc
+# Python bytecode
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+.env/
+
+# Flask instance folder (holds runtime data, logs, etc.)
+instance/
+
+# Flask configuration files
+*.env
+*.flaskenv
+
+# Build and distribution folders
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# SQLite database file (if used)
+*.sqlite3
+*.db
+
+# IDE files
+.vscode/
+.idea/
+
+# MacOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+
+# Pytest cache
+.cache/
+
+# TypeScript build files (if you're using TypeScript for the frontend)
+*.tsbuildinfo
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Docker files (optional, if Docker used)
+docker-compose.override.yml
