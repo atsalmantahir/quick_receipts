@@ -3,6 +3,7 @@ from flask import request
 from app.models import User, Role
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from app.utils.audit_log_helper import log_api_action, log_audit 
 
 api = Namespace('users', description="Users operations")
 
@@ -24,6 +25,7 @@ user_update_model = api.model('UserUpdate', {
 
 @api.route('/')
 class UserController(Resource):
+    @log_api_action('create')  # Log when creating a new user
     @api.expect(user_model)
     def post(self):
         data = request.get_json()
