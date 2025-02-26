@@ -27,14 +27,11 @@ def create_app(config_object='app.config.Config'):
     # Register Blueprints
     from .controllers.users_controller import api as users_api
     from .controllers.roles_controller import api as roles_api
+    from .controllers.receipts_controller import api as receipts_api
 
     # Add namespaces with the '/api' prefix
     api.add_namespace(users_api, path=f'{api_prefix}/users')
     api.add_namespace(roles_api, path=f'{api_prefix}/roles')
+    api.add_namespace(receipts_api, path=f'{api_prefix}/receipts')  # Fixed typo
 
     return app
-
-
-
-
-
