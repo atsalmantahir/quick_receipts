@@ -1,23 +1,24 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { CContainer, CRow, CCol, CCard, CCardBody, CCardHeader } from '@coreui/react';
+import '@coreui/coreui/dist/css/coreui.min.css'; // Import Core UI styles
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <CContainer>
+        <CRow>
+          <CCol xs="12" sm="6" md="4">
+            <CCard>
+              <CCardHeader>
+                Core UI Card
+              </CCardHeader>
+              <CCardBody>
+                <p>This is a Core UI component integrated into React.</p>
+              </CCardBody>
+            </CCard>
+          </CCol>
+        </CRow>
+      </CContainer>
     </div>
   );
 }
