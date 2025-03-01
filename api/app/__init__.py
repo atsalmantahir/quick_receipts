@@ -20,7 +20,7 @@ def create_app(config_object='app.config.Config'):
     jwt.init_app(app)
 
      # Enable CORS for all routes
-    CORS(app, origins="*", supports_credentials=True)  # Allow all origins and credentials
+    CORS(app)
 
     # Initialize API
     api = Api(app, doc='/swagger/')

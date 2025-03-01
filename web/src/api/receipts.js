@@ -1,39 +1,29 @@
-import axios from 'axios';
+import apiClient from './index';
 
-const API_URL = 'https://yourapi.com/receipts';
+const RECEIPTS_URL = '/receipts';
 
 const getReceipts = async () => {
-  const response = await axios.get(API_URL, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-  });
+  const response = await apiClient.get(RECEIPTS_URL);
   return response.data;
 };
 
 const createReceipt = async (data) => {
-  const response = await axios.post(API_URL, data, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-  });
+  const response = await apiClient.post(RECEIPTS_URL, data);
   return response.data;
 };
 
 const updateReceipt = async (id, data) => {
-  const response = await axios.put(`${API_URL}/${id}`, data, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-  });
+  const response = await apiClient.put(`${RECEIPTS_URL}/${id}`, data);
   return response.data;
 };
 
 const deleteReceipt = async (id) => {
-  const response = await axios.delete(`${API_URL}/${id}`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-  });
+  const response = await apiClient.delete(`${RECEIPTS_URL}/${id}`);
   return response.data;
 };
 
 const getReceiptById = async (id) => {
-  const response = await axios.get(`${API_URL}/${id}`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-  });
+  const response = await apiClient.get(`${RECEIPTS_URL}/${id}`);
   return response.data;
 };
 

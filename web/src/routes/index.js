@@ -5,7 +5,9 @@ import Receipts from '../pages/Receipts';
 import ReceiptDetail from '../pages/ReceiptDetail';
 
 const PrivateRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('token'); // Check if user is authenticated
+  var token = localStorage.getItem('token');
+
+  const isAuthenticated = token; // Check if user is authenticated
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
