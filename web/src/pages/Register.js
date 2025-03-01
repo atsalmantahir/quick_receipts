@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { register } from '../api/auth';
-import { CContainer, CCard, CCardBody, CForm, CFormInput, CButton, CAlert } from '@coreui/react';
+import { CContainer, CCard, CCardBody, CFormInput, CButton, CAlert } from '@coreui/react';
 import '@coreui/coreui/dist/css/coreui.min.css'; // Ensure CoreUI CSS is imported
 
 const Register = () => {
@@ -17,7 +17,6 @@ const Register = () => {
   };
 
   const validationSchema = Yup.object({
-    name: Yup.string().required('Name is required'),
     email: Yup.string().email('Invalid email address').required('Email is required'),
     password: Yup.string()
       .required('Password is required')
@@ -29,11 +28,12 @@ const Register = () => {
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     try {
+      console.log('Submitting form with values:', values); // Debugging
       await register(values); // Call the register API
       navigate('/login'); // Redirect to login page after successful registration
     } catch (error) {
       console.error('Registration failed', error);
-      setErrors({ api: 'Registration failed. Please try again.' }); // Display API error
+      setErrors({ api: error.response?.data?.message || 'Registration failed. Please try again.' }); // Display API error
     } finally {
       setSubmitting(false);
     }
@@ -46,23 +46,8 @@ const Register = () => {
           <h1 className="text-center mb-4">Register</h1>
           <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
             {({ isSubmitting, errors, touched }) => (
-              <CForm>
-                {/* Name Field */}
-                <div className="mb-3">
-                  <label htmlFor="name" className="form-label">
-                    Name
-                  </label>
-                  <Field
-                    as={CFormInput}
-                    type="text"
-                    name="name"
-                    id="name"
-                    placeholder="Enter your name"
-                    className={touched.name && errors.name ? 'is-invalid' : ''}
-                  />
-                  <ErrorMessage name="name" component="div" className="invalid-feedback" />
-                </div>
-
+              <Form>
+                
                 {/* Email Field */}
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">
@@ -134,7 +119,7 @@ const Register = () => {
                     </CButton>
                   </p>
                 </div>
-              </CForm>
+              </Form>
             )}
           </Formik>
         </CCardBody>

@@ -2,8 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { login } from '../api/auth';
+import { login } from '../api/auth'; // Login function
 import { CContainer, CCard, CCardBody, CForm, CFormInput, CButton, CAlert } from '@coreui/react';
+import '@coreui/coreui/dist/css/coreui.min.css';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,13 +21,16 @@ const Login = () => {
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     try {
+      console.log('Submitting form with values:', values);
       const { token } = await login(values.email, values.password);
-      localStorage.setItem('token', token); // Save token to localStorage
-      navigate('/receipts'); // Redirect to receipts page
+      console.log('Login successful, token:', token);
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+      navigate('/receipts');
     } catch (error) {
       console.error('Login failed', error);
-      // Display a user-friendly error message
-      setErrors({ email: 'Invalid email or password', password: 'Invalid email or password' });
+      setErrors({ api: error.message || 'Invalid email or password' });
     } finally {
       setSubmitting(false);
     }
@@ -39,12 +43,10 @@ const Login = () => {
           <h1 className="text-center mb-4">Login</h1>
           <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
             {({ isSubmitting, errors, touched }) => (
-              <CForm>
+              <Form> {/* Use Formik's <Form> component */}
                 {/* Email Field */}
                 <div className="mb-3">
-                  <label htmlFor="email" className="form-label">
-                    Email
-                  </label>
+                  <label htmlFor="email" className="form-label">Email</label>
                   <Field
                     as={CFormInput}
                     type="email"
@@ -58,9 +60,7 @@ const Login = () => {
 
                 {/* Password Field */}
                 <div className="mb-3">
-                  <label htmlFor="password" className="form-label">
-                    Password
-                  </label>
+                  <label htmlFor="password" className="form-label">Password</label>
                   <Field
                     as={CFormInput}
                     type="password"
@@ -95,7 +95,7 @@ const Login = () => {
                     </CButton>
                   </p>
                 </div>
-              </CForm>
+              </Form> 
             )}
           </Formik>
         </CCardBody>
