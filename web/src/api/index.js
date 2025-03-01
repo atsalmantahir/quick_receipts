@@ -14,7 +14,7 @@ apiClient.interceptors.request.use((config) => {
   const isAuthEndpoint = config.url.includes('/auth/login') || config.url.includes('/auth/register');
 
   if (token && !isAuthEndpoint) {
-    config.headers.Authorization = `Bearer ${token}`;
+    // config.headers.Authorization = `Bearer ${token}`;
   }
   
   return config;

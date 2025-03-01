@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { getReceiptById, updateReceipt, deleteReceipt } from '../api/receipts';
+import { getReceiptById, updateReceipt, deleteReceipt } from '../../api/receipts';
 import { CContainer, CCard, CCardBody, CForm, CFormInput, CButton } from '@coreui/react';
 
 const ReceiptDetail = () => {

@@ -1,20 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
-import Receipts from '../pages/Receipts';
-import ReceiptDetail from '../pages/ReceiptDetail';
+import Receipts from '../pages/receipts/Receipts';
+import ReceiptDetail from '../pages/receipts/ReceiptDetail';
+import Dashboard from '../pages/Dashboard';
 
 const PrivateRoute = ({ children }) => {
   var token = localStorage.getItem('token');
 
   const isAuthenticated = token; // Check if user is authenticated
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? children : <Navigate to="/dashboard" />;
 };
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
