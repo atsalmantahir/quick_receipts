@@ -3,6 +3,7 @@ import Login from '../pages/Login';
 import Register from '../pages/Register';
 import Receipts from '../pages/receipts/Receipts';
 import ReceiptDetail from '../pages/receipts/ReceiptDetail';
+import CreateReceipt from '../pages/receipts/CreateReceipt';
 import Dashboard from '../pages/Dashboard';
 
 const PrivateRoute = ({ children }) => {
@@ -24,6 +25,14 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <Receipts />
+            </PrivateRoute>
+          }
+        />
+         <Route
+          path="/receipts/new" // New route for creating a receipt
+          element={
+            <PrivateRoute>
+              <CreateReceipt />
             </PrivateRoute>
           }
         />
