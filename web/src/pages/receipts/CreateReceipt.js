@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CButton, CForm, CFormInput, CFormLabel, CFormTextarea, CSpinner, CAlert } from '@coreui/react';
+import { CButton, CForm, CFormInput, CFormLabel, CSpinner, CAlert } from '@coreui/react';
 import { createReceipt } from '../../api/receipts'; // Import your API function
 import Loader from '../../components/Common/Loader'; // Import the Loader component
 import MainLayout from '../../components/MainLayout'; // Import MainLayout
@@ -9,20 +9,10 @@ const CreateReceipt = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [receipt, setReceipt] = useState({
-    name: "",
-    description: "",
-    amount: "",
-    file: null, // For file upload
-  });
-
-  const handleInput = (event) => {
-    const { name, value } = event.target;
-    setReceipt({ ...receipt, [name]: value });
-  };
+  const [file, setFile] = useState(null); // State for the uploaded file
 
   const handleFileChange = (event) => {
-    setReceipt({ ...receipt, file: event.target.files[0] });
+    setFile(event.target.files[0]); // Set the selected file
   };
 
   const handleSubmit = async (event) => {
@@ -30,21 +20,25 @@ const CreateReceipt = () => {
     try {
       setIsLoading(true);
 
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('name', receipt.name);
-      formData.append('description', receipt.description);
-      formData.append('amount', receipt.amount);
-      if (receipt.file) {
-        formData.append('file', receipt.file);
+      // Check if a file is selected
+      if (!file) {
+        setError('No file selected');
+        return;
       }
 
-      // Call the API to create the receipt
-      await createReceipt(formData);
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('receipt_image', file); // Match the key expected by the backend
 
-      // Reset form and redirect
-      setReceipt({ name: "", description: "", amount: "", file: null });
-      navigate('/receipts'); // Redirect to receipts list
+      // Call the API to create the receipt
+      const response = await createReceipt(formData);
+
+      // Handle success
+      if (response.message === 'Receipt created successfully') {
+        navigate('/receipts'); // Redirect to receipts list
+      } else {
+        setError(response.message || 'Failed to create receipt');
+      }
     } catch (error) {
       setError(error.message || 'Failed to create receipt. Please try again.');
     } finally {
@@ -72,43 +66,13 @@ const CreateReceipt = () => {
         </div>
         <CForm onSubmit={handleSubmit}>
           <div className="mb-3">
-            <CFormLabel htmlFor="name">Name</CFormLabel>
-            <CFormInput
-              type="text"
-              id="name"
-              name="name"
-              value={receipt.name}
-              onChange={handleInput}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <CFormLabel htmlFor="description">Description</CFormLabel>
-            <CFormTextarea
-              id="description"
-              name="description"
-              value={receipt.description}
-              onChange={handleInput}
-            />
-          </div>
-          <div className="mb-3">
-            <CFormLabel htmlFor="amount">Amount</CFormLabel>
-            <CFormInput
-              type="number"
-              id="amount"
-              name="amount"
-              value={receipt.amount}
-              onChange={handleInput}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <CFormLabel htmlFor="file">Upload File</CFormLabel>
+            <CFormLabel htmlFor="file">Upload Receipt Image</CFormLabel>
             <CFormInput
               type="file"
               id="file"
               name="file"
               onChange={handleFileChange}
+              required
             />
           </div>
           <CButton type="submit" color="primary" disabled={isLoading}>

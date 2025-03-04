@@ -44,8 +44,7 @@ class Subscription(db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
     user = db.relationship('User', backref='subscriptions')
-
-# Receipt model
+    
 class Receipt(db.Model):
     __tablename__ = 'receipts'
     receipt_id = db.Column(db.Integer, primary_key=True)
@@ -53,15 +52,11 @@ class Receipt(db.Model):
     receipt_date = db.Column(db.DateTime, nullable=False)
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     receipt_image_url = db.Column(db.String)
-    ocr_data = db.Column(JSON)  # Use JSON instead of JSONB
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref='receipts')
-    # Ensure the backref is unique by renaming 'ocr_data' to something else like 'receipt_ocr_data'
-    ocr_data = db.relationship('OcrData', backref='receipt_data', lazy=True)
 
-# OCR Data model
 class OcrData(db.Model):
     __tablename__ = 'ocr_data'
     ocr_data_id = db.Column(db.Integer, primary_key=True)
@@ -71,8 +66,8 @@ class OcrData(db.Model):
     confidence = db.Column(db.Float, nullable=False)  # Confidence score for this field (e.g., 0.98)
     normalized_value = db.Column(db.String(255))  # Normalized value if applicable (e.g., '836' instead of '836 JPY')
 
-    # Ensure the backref is unique by renaming 'receipt' to something else like 'receipt_data'
-    receipt = db.relationship('Receipt', backref='ocr_data_related')
+    # Relationship with the Receipt model
+    receipt = db.relationship('Receipt', backref='ocr_data_related')  # Use the same unique backref name
 
 # AuditLog model
 class AuditLog(db.Model):

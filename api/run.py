@@ -6,5 +6,5 @@ app = create_app()
 if __name__ == "__main__":
     # Ensure app context is active before calling seed_data
     with app.app_context():
-        seed_data()  # Call seed_data() inside the app context
-    app.run(debug=True)
+        # seed_data()  # Call seed_data() inside the app context
+        app.run(debug=True)
