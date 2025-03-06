@@ -27,4 +27,10 @@ const getReceiptById = async (id) => {
   return response.data;
 };
 
-export { getReceipts, createReceipt, updateReceipt, deleteReceipt, getReceiptById };
+// Perform OCR on a receipt image
+const performOCR = async (id) => {
+  const response = await apiClient.post(`${RECEIPTS_URL}/${id}/ocr`);
+  return response.data;
+};
+
+export { getReceipts, createReceipt, updateReceipt, deleteReceipt, getReceiptById, performOCR };
