@@ -16,6 +16,11 @@ apiClient.interceptors.request.use((config) => {
   if (token && !isAuthEndpoint) {
     // config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (config.data instanceof FormData) {
+    // If the data is FormData, set the Content-Type to multipart/form-data
+    config.headers['Content-Type'] = 'multipart/form-data';
+  }
   
   return config;
 });

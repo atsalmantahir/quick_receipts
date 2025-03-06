@@ -8,7 +8,7 @@ const getReceipts = async () => {
 };
 
 const createReceipt = async (data) => {
-  const response = await apiClient.post(RECEIPTS_URL, data);
+  const response = await apiClient.post(`${RECEIPTS_URL}/`, data);
   return response.data;
 };
 

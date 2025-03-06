@@ -13,6 +13,9 @@ jwt = JWTManager()
 
 def create_app(config_object='app.config.Config'):
     app = Flask(__name__)
+    # Enable CORS for all routes
+    CORS(app)
+
     app.config.from_object(config_object)
     
     # Initialize extensions
@@ -20,8 +23,6 @@ def create_app(config_object='app.config.Config'):
     migrate.init_app(app, db)
     jwt.init_app(app)
 
-    # Enable CORS for all routes
-    CORS(app)
 
     # Configure file upload settings
     app.config['UPLOAD_FOLDER'] = 'uploads/receipts'  # Folder to save uploaded files

@@ -46,7 +46,7 @@ const Receipts = () => {
           {receipts.map((receipt, index) => (
             <CTableRow key={receipt.id}>
               <CTableDataCell>{index + 1}</CTableDataCell>
-              <CTableDataCell>{receipt.name}</CTableDataCell>
+              <CTableDataCell>{receipt.receipt_image_url}</CTableDataCell>
               <CTableDataCell>
                 <CButton
                   color="info"
