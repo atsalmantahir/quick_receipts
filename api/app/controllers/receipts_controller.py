@@ -1,5 +1,5 @@
 from flask_restx import Namespace, Resource, fields
-from flask import request
+from flask import request, abort
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 from app.models import Receipt, User
@@ -92,3 +92,47 @@ class ReceiptController(Resource):
             'user_id': receipt.user_id,
             'receipt_image_url': receipt.receipt_image_url,
             'total_amount': str(receipt.total_amount)} for receipt in receipts], 200
+
+
+@api.route('/<int:receipt_id>')
+class ReceiptDetailController(Resource):
+    def get(self, receipt_id):
+        """
+        Get a receipt by ID
+        """
+        receipt = Receipt.query.get(receipt_id)
+        if not receipt:
+            abort(404, description="Receipt not found")
+
+        return {
+            'receipt_id': receipt.receipt_id,
+            'user_id': receipt.user_id,
+            'receipt_image_url': receipt.receipt_image_url,
+            'total_amount': str(receipt.total_amount),
+            'receipt_date': receipt.receipt_date.isoformat(),
+        }, 200
+
+    def delete(self, receipt_id):
+        """
+        Delete a receipt by ID
+        """
+        receipt = Receipt.query.get(receipt_id)
+        if not receipt:
+            abort(404, description="Receipt not found")
+
+        try:
+            # Delete the file from the uploads folder
+            upload_folder = os.path.join(api.app.root_path, 'uploads', 'receipts')
+            file_path = os.path.join(upload_folder, receipt.receipt_image_url)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+            # Delete the receipt from the database
+            db.session.delete(receipt)
+            db.session.commit()
+            return {'message': 'Receipt deleted successfully'}, 200
+
+        except Exception as e:
+            db.session.rollback()
+            api.app.logger.error(f"Error deleting receipt: {str(e)}")
+            return {'message': 'Failed to delete receipt'}, 500

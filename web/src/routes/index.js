@@ -4,6 +4,7 @@ import Register from '../pages/Register';
 import Receipts from '../pages/receipts/Receipts';
 import ReceiptDetail from '../pages/receipts/ReceiptDetail';
 import CreateReceipt from '../pages/receipts/CreateReceipt';
+import ExtractReceipt from '../pages/receipts/ExtractReceipt';
 import Dashboard from '../pages/Dashboard';
 
 const PrivateRoute = ({ children }) => {
@@ -44,6 +45,8 @@ const AppRoutes = () => {
             </PrivateRoute>
           }
         />
+        <Route path="/receipts/extract/:id" element={<PrivateRoute><ExtractReceipt /></PrivateRoute>} /> 
+
         <Route path="*" element={<Navigate to="/receipts" />} />
       </Routes>
     </BrowserRouter>
