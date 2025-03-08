@@ -72,6 +72,7 @@ class ReceiptController(Resource):
                 receipt_date=receipt_date,
                 total_amount=total_amount,
                 receipt_image_url=filename,
+                is_ocr_extracted = false
             )
 
             db.session.add(new_receipt)
@@ -93,6 +94,7 @@ class ReceiptController(Resource):
             'receipt_id': receipt.receipt_id, 
             'user_id': receipt.user_id,
             'receipt_image_url': receipt.receipt_image_url,
+            'is_ocr_extracted': receipt.is_ocr_extracted,
             'total_amount': str(receipt.total_amount)} for receipt in receipts], 200
 
 

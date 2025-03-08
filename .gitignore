@@ -5700,3 +5700,4 @@ api/venv/Scripts/pyrsa-priv2pub.exe
 api/venv/Scripts/pyrsa-sign.exe
 api/venv/Scripts/pyrsa-verify.exe
 api/venv/*
+api/app/uploads/receipts/sample_Bank_statement.pdf

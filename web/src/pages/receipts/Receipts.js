@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getReceipts, deleteReceipt } from '../../api/receipts';
-import { CButton, CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter } from '@coreui/react';
+import { CButton, CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CBadge } from '@coreui/react';
 import MainLayout from '../../components/MainLayout';
 
 const Receipts = () => {
@@ -56,6 +56,7 @@ const Receipts = () => {
           <CTableRow>
             <CTableHeaderCell>#</CTableHeaderCell>
             <CTableHeaderCell>Name</CTableHeaderCell>
+            <CTableHeaderCell>Ocr Extracted</CTableHeaderCell>
             <CTableHeaderCell>Actions</CTableHeaderCell>
           </CTableRow>
         </CTableHead>
@@ -64,6 +65,11 @@ const Receipts = () => {
             <CTableRow key={receipt.receipt_id}>
               <CTableDataCell>{index + 1}</CTableDataCell>
               <CTableDataCell>{receipt.receipt_image_url}</CTableDataCell>
+              <CTableDataCell>
+                <CBadge color={receipt.is_ocr_extracted ? 'success' : 'danger'}>
+                  {receipt.is_ocr_extracted ? 'Extracted' : 'Not Extracted'}
+                </CBadge>
+              </CTableDataCell>
               <CTableDataCell>
                 <CButton
                   color="info"

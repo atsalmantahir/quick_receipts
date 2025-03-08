@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getReceiptById } from '../../api/receipts'; // Import API functions
+import { getReceiptById, performOCR, getOcrData } from '../../api/receipts'; // Import API functions
 import { CSpinner, CAlert, CCard, CCardHeader, CCardBody, CButton, CRow, CCol, CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell } from '@coreui/react';
 import MainLayout from '../../components/MainLayout';
 import { saveAs } from 'file-saver'; // For downloading CSV
@@ -12,25 +12,6 @@ const ExtractReceipt = () => {
   const [ocrResults, setOcrResults] = useState([]); // State for OCR results
   const [isOcrLoading, setIsOcrLoading] = useState(false); // State for OCR loading
   const [error, setError] = useState(null);
-
-  // Sample OCR data (temporary)
-  const sampleOcrData = [
-    { type: 'purchase_time', text_value: '15:30:05', normalized_value: '', confidence: 0.95 },
-    { type: 'total_amount', text_value: '836', normalized_value: '836', confidence: 0.98 },
-    { type: 'supplier_phone', text_value: '047-460-3821-', normalized_value: '', confidence: 0.92 },
-    { type: 'total_tax_amount', text_value: '76', normalized_value: '76', confidence: 0.97 },
-    { type: 'net_amount', text_value: '760', normalized_value: '760', confidence: 0.96 },
-    { type: 'supplier_name', text_value: 'STARBUCKSⓇ', normalized_value: '', confidence: 0.94 },
-    { type: 'receipt_date', text_value: '2021/07/11 15:30:05', normalized_value: '2021-07-11', confidence: 0.99 },
-    { type: 'payment_type', text_value: 'ックスカード', normalized_value: '', confidence: 0.91 },
-    { type: 'line_item', text_value: '1 G アイス スターバックス ラテ 420', normalized_value: '', confidence: 0.93 },
-    { type: 'line_item/quantity', text_value: '1', normalized_value: '', confidence: 0.95 },
-    { type: 'line_item/description', text_value: 'G アイス スターバックス ラテ', normalized_value: '', confidence: 0.94 },
-    { type: 'line_item/amount', text_value: '420', normalized_value: '420', confidence: 0.97 },
-    { type: 'currency', text_value: '', normalized_value: 'JPY', confidence: 0.99 },
-    { type: 'supplier_address', text_value: '', normalized_value: '日本\n〒273-0005 千葉県船橋市本町７丁目１−１ シャポー船橋本館 1階', confidence: 0.98 },
-    { type: 'supplier_city', text_value: '', normalized_value: '船橋市', confidence: 0.98 },
-  ];
 
   // Fetch receipt data on component mount
   useEffect(() => {
@@ -48,15 +29,27 @@ const ExtractReceipt = () => {
     fetchData();
   }, [id]);
 
-  // Simulate OCR process with sample data
+  // Perform OCR on the receipt
   const handlePerformOCR = async () => {
     try {
       setIsOcrLoading(true); // Start OCR loading
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setOcrResults(sampleOcrData); // Use sample OCR data
+      const response = await performOCR(id); // Call the performOCR API
+      setOcrResults(response.ocr_results); // Set OCR results from the API response
     } catch (error) {
       setError('Failed to perform OCR: ' + error.message);
+    } finally {
+      setIsOcrLoading(false); // Stop OCR loading
+    }
+  };
+
+  // Fetch OCR data for the receipt
+  const handleFetchOcrData = async () => {
+    try {
+      setIsOcrLoading(true); // Start OCR loading
+      const response = await getOcrData(id); // Call the getOcrData API
+      setOcrResults(response.ocr_details); // Set OCR results from the API response
+    } catch (error) {
+      setError('Failed to fetch OCR data: ' + error.message);
     } finally {
       setIsOcrLoading(false); // Stop OCR loading
     }
@@ -72,7 +65,7 @@ const ExtractReceipt = () => {
     // Create CSV content
     const headers = ['Type', 'Text Value', 'Normalized Value', 'Confidence'];
     const rows = ocrResults.map((result) => [
-      result.type,
+      result.field_type,
       result.text_value,
       result.normalized_value,
       `${(result.confidence * 100).toFixed(2)}%`,
@@ -134,10 +127,10 @@ const ExtractReceipt = () => {
                     <CTableDataCell>User ID</CTableDataCell>
                     <CTableDataCell>{receiptData.user_id}</CTableDataCell>
                   </CTableRow>
-                  <CTableRow>
+                  {/* <CTableRow>
                     <CTableDataCell>Total Amount</CTableDataCell>
                     <CTableDataCell>${receiptData.total_amount}</CTableDataCell>
-                  </CTableRow>
+                  </CTableRow> */}
                   <CTableRow>
                     <CTableDataCell>Receipt Date</CTableDataCell>
                     <CTableDataCell>
@@ -175,6 +168,13 @@ const ExtractReceipt = () => {
                   {isOcrLoading ? <CSpinner size="sm" /> : 'Perform OCR'}
                 </CButton>
                 <CButton
+                  color="secondary"
+                  onClick={handleFetchOcrData}
+                  disabled={isOcrLoading} // Disable button while fetching OCR data
+                >
+                  {isOcrLoading ? <CSpinner size="sm" /> : 'Fetch OCR Data'}
+                </CButton>
+                <CButton
                   color="success"
                   onClick={handleDownloadCSV}
                   disabled={ocrResults.length === 0} // Disable if no OCR results
@@ -197,7 +197,7 @@ const ExtractReceipt = () => {
                   {ocrResults.length > 0 ? (
                     ocrResults.map((result, index) => (
                       <CTableRow key={index}>
-                        <CTableDataCell>{result.type}</CTableDataCell>
+                        <CTableDataCell>{result.field_type}</CTableDataCell>
                         <CTableDataCell>{result.text_value}</CTableDataCell>
                         <CTableDataCell>{result.normalized_value}</CTableDataCell>
                         <CTableDataCell>{(result.confidence * 100).toFixed(2)}%</CTableDataCell>
