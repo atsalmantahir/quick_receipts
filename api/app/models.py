@@ -52,22 +52,33 @@ class Receipt(db.Model):
     receipt_date = db.Column(db.DateTime, nullable=False)
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     receipt_image_url = db.Column(db.String)
+    is_ocr_extracted = db.Column(db.Boolean, default=False)  # New field
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship('User', backref='receipts')
 
-class OcrData(db.Model):
-    __tablename__ = 'ocr_data'
-    ocr_data_id = db.Column(db.Integer, primary_key=True)
+class OcrBase(db.Model):
+    __tablename__ = 'ocr_base'
+    ocr_base_id = db.Column(db.Integer, primary_key=True)
     receipt_id = db.Column(db.Integer, db.ForeignKey('receipts.receipt_id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    modified_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+
+    receipt = db.relationship('Receipt', backref='ocr_bases')
+
+class OcrDetails(db.Model):
+    __tablename__ = 'ocr_details'
+    ocr_details_id = db.Column(db.Integer, primary_key=True)
+    ocr_base_id = db.Column(db.Integer, db.ForeignKey('ocr_base.ocr_base_id'), nullable=False)
     field_type = db.Column(db.String(100), nullable=False)  # e.g., 'total_amount', 'purchase_time'
     text_value = db.Column(db.String(255), nullable=False)  # Raw OCR value (e.g., '15:30:05', '836')
-    confidence = db.Column(db.Float, nullable=False)  # Confidence score for this field (e.g., 0.98)
     normalized_value = db.Column(db.String(255))  # Normalized value if applicable (e.g., '836' instead of '836 JPY')
+    confidence = db.Column(db.Float, nullable=False)  # Confidence score for this field (e.g., 0.98)
 
-    # Relationship with the Receipt model
-    receipt = db.relationship('Receipt', backref='ocr_data_related')  # Use the same unique backref name
+    ocr_base = db.relationship('OcrBase', backref='ocr_details')
 
 # AuditLog model
 class AuditLog(db.Model):

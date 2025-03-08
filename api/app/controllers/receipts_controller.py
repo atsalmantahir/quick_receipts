@@ -2,7 +2,7 @@ from flask_restx import Namespace, Resource, fields
 from flask import request, abort
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
-from app.models import Receipt, User
+from app.models import Receipt, User, OcrBase, OcrBase, OcrDetails
 from app import db
 import os
 from datetime import datetime
@@ -144,12 +144,8 @@ class ReceiptDetailController(Resource):
 class PerformOCRController(Resource):
     def __init__(self, api=None, *args, **kwargs):
         super().__init__(api=api, *args, **kwargs)
-        # Access the app object from the API object
         self.app = api.app
-
-        # Set the environment variable for Google Cloud credentials
         credentials_path = os.path.join(self.app.root_path, 'config', 'quick-receipts-450104-ed1765c72967.json')
-        print(f"Credentials path: {credentials_path}")  # Debugging
         if not os.path.exists(credentials_path):
             raise FileNotFoundError(f"Credentials file not found at: {credentials_path}")
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
@@ -174,14 +170,79 @@ class PerformOCRController(Resource):
             # Perform OCR using Google Document AI
             ocr_results = self.perform_ocr_with_document_ai(file_path)
 
+            # Create OcrBase entry
+            user_id = 8  # Replace with the actual user ID from the session or request
+            ocr_base = OcrBase(
+                receipt_id=receipt_id,
+                created_by=user_id,
+                modified_by=user_id
+            )
+            db.session.add(ocr_base)
+            db.session.commit()
+
+            # Create OcrDetails entries
+            for result in ocr_results:
+                ocr_detail = OcrDetails(
+                    ocr_base_id=ocr_base.ocr_base_id,
+                    field_type=result['type'],
+                    text_value=result['text_value'],
+                    normalized_value=result['normalized_value'],
+                    confidence=result['confidence']
+                )
+                db.session.add(ocr_detail)
+
+            # Update the Receipt table to mark OCR as extracted
+            receipt.is_ocr_extracted = True
+            db.session.commit()
+
             return {
                 'message': 'OCR completed successfully',
                 'receipt_id': receipt_id,
                 'ocr_results': ocr_results,
             }, 200
         except Exception as e:
-            return {'message': f"Failed to perform OCR, {e}"}, 500
+            db.session.rollback()
+            self.app.logger.error(f"Error performing OCR: {str(e)}")
+            return {'message': f"Failed to perform OCR, {str(e)}"}, 500
 
+    def get(self, receipt_id):
+        """
+        Get the OCR base and associated OCR details for a receipt
+        """
+        receipt = Receipt.query.get(receipt_id)
+        if not receipt:
+            abort(404, description="Receipt not found")
+
+        # Retrieve the OCR base record for the receipt
+        ocr_base = OcrBase.query.filter_by(receipt_id=receipt_id).first()
+        if not ocr_base:
+            return {'message': 'OCR data not found for this receipt'}, 404
+
+        # Retrieve the associated OCR details
+        ocr_details = OcrDetails.query.filter_by(ocr_base_id=ocr_base.ocr_base_id).all()
+
+        # Prepare the response data
+        ocr_details_data = [{
+            'field_type': detail.field_type,
+            'text_value': detail.text_value,
+            'normalized_value': detail.normalized_value,
+            'confidence': detail.confidence
+        } for detail in ocr_details]
+
+        response_data = {
+            'ocr_base': {
+                'ocr_base_id': ocr_base.ocr_base_id,
+                'receipt_id': ocr_base.receipt_id,
+                'created_by': ocr_base.created_by,
+                # 'created_at': ocr_base.created_at.isoformat(),
+                'modified_by': ocr_base.modified_by
+                # 'modified_at': ocr_base.modified_at.isoformat()
+            },
+            'ocr_details': ocr_details_data
+        }
+
+        return response_data, 200
+    
     def perform_ocr_with_document_ai(self, file_path):
         """
         Perform OCR using Google Document AI
@@ -242,6 +303,7 @@ class PerformOCRController(Resource):
                 "type": entity.type_,
                 "text_value": entity.text_anchor.content or entity.mention_text,
                 "normalized_value": entity.normalized_value.text if entity.normalized_value else None,
+                "confidence": entity.confidence if hasattr(entity, 'confidence') else 0.0  # Add confidence with a default value
             }
             entities_data.append(entity_data)
 
@@ -251,6 +313,7 @@ class PerformOCRController(Resource):
                     "type": prop.type_,
                     "text_value": prop.text_anchor.content or prop.mention_text,
                     "normalized_value": prop.normalized_value.text if prop.normalized_value else None,
+                    "confidence": prop.confidence if hasattr(prop, 'confidence') else 0.0  # Add confidence with a default value
                 }
                 entities_data.append(nested_entity_data)
 
