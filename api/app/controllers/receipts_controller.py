@@ -72,7 +72,7 @@ class ReceiptController(Resource):
                 receipt_date=receipt_date,
                 total_amount=total_amount,
                 receipt_image_url=filename,
-                is_ocr_extracted = false
+                is_ocr_extracted = 0
             )
 
             db.session.add(new_receipt)
