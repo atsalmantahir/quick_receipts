@@ -5701,3 +5701,15 @@ api/venv/Scripts/pyrsa-sign.exe
 api/venv/Scripts/pyrsa-verify.exe
 api/venv/*
 api/app/uploads/receipts/sample_Bank_statement.pdf
+api/app/uploads/receipts/CBP1_copy.jpeg
+api/app/uploads/receipts/final-output.pdf
+api/app/uploads/receipts/final-receipt.pdf
+api/app/uploads/receipts/New_Receipts-01_1.jpg
+api/app/uploads/receipts/New_Receipts-01.png
+api/app/uploads/receipts/New_Receipts-04_1.jpg
+api/app/uploads/receipts/New_Receipts-04_2.jpg
+api/app/uploads/receipts/New_Receipts-04.png
+api/app/uploads/receipts/New_Receipts-05_1.jpg
+api/app/uploads/receipts/New_Receipts-05.png
+api/app/uploads/receipts/Receipt_sample.pdf
+api/app/uploads/receipts/Receipt_sample2.pdf
