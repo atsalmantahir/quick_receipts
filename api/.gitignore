@@ -11,6 +11,10 @@ env/
 ENV/
 .env/
 
+uploads/
+
+app/config/
+
 # Flask instance folder (holds runtime data, logs, etc.)
 instance/
 
