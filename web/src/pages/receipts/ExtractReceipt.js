@@ -81,6 +81,65 @@ const ExtractReceipt = () => {
     saveAs(blob, `receipt_${id}_ocr_results.csv`);
   };
 
+  // New method: Yayoi-compatible CSV
+  const handleDownloadYayoiCSV = () => {
+      if (ocrResults.length === 0) {
+        alert('No OCR results available.');
+        return;
+      }
+
+      // Transform data for Yayoi
+      const yayoiData = ocrResults.reduce((acc, item) => {
+        switch(item.field_type) {
+          case 'receipt_date':
+            acc.取引日 = item.normalized_value?.replace(/(\d{4})(\d{3})(\d{2})/, '$1$2$3'); // Fix date format
+            break;
+          case 'line_item':
+            acc.items.push({
+              品名: item.text_value,
+              数量: 1,
+              金額: 0,
+              税区分: '課税'
+            });
+            break;
+          case 'line_item/amount':
+            if(acc.items.length > 0) {
+              const lastItem = acc.items[acc.items.length - 1];
+              lastItem.金額 = parseInt(item.text_value.replace(/,/g, '')) || 0;
+            }
+            break;
+          case 'total_amount':
+            acc.items.push({
+              品名: '合計金額',
+              金額: parseInt(item.text_value.replace(/,/g, '')) || 0,
+              税区分: '課税'
+            });
+            break;
+        }
+        return acc;
+      }, { items: [] });
+
+      // Create CSV content
+      const headers = ['取引日', '品名', '数量', '金額', '税区分'];
+      const rows = [
+        [yayoiData.取引日 || '', '', '', '', ''], // Header row with date
+        ...yayoiData.items.map(item => [
+          item.品名,
+          item.数量,
+          item.金額,
+          item.税区分
+        ])
+      ];
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, `yayoi_receipt_${id}.csv`);
+  };
+
   if (isLoading) {
     return <CSpinner />;
   }
@@ -180,6 +239,13 @@ const ExtractReceipt = () => {
                   disabled={ocrResults.length === 0} // Disable if no OCR results
                 >
                   Download as CSV
+                </CButton>
+                <CButton
+                  color="warning"
+                  onClick={handleDownloadYayoiCSV}
+                  disabled={ocrResults.length === 0}
+                >
+                  Download Yayoi CSV
                 </CButton>
               </div>
             </CCardHeader>
