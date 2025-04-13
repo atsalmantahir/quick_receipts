@@ -2,8 +2,8 @@ import apiClient from './index';
 
 const RECEIPTS_URL = '/receipts';
 
-const getReceipts = async () => {
-  const response = await apiClient.get(RECEIPTS_URL);
+const getReceipts = async (page = 1, perPage = 10) => {
+  const response = await apiClient.get(`${RECEIPTS_URL}?page=${page}&per_page=${perPage}`);
   return response.data;
 };
 

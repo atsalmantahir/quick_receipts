@@ -44,15 +44,31 @@ class Subscription(db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
     user = db.relationship('User', backref='subscriptions')
-    
+ 
+# Batch Model
+class Batch(db.Model):
+    __tablename__ = 'batches'  # Explicit table name (prevents conflicts)
+    batch_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    status = db.Column(db.String(20), default='uploaded')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    receipts = db.relationship('Receipt', backref='batch')  # Now works
+
+# Receipt Model (Fixed)
 class Receipt(db.Model):
     __tablename__ = 'receipts'
     receipt_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    
+    # ✅ Correct foreign key (matches Batch's table name)
+    batch_id = db.Column(db.Integer, db.ForeignKey('batches.batch_id'))  # Reference 'batches'
+    
+    confidence_score = db.Column(db.Float)
+    is_flagged = db.Column(db.Boolean, default=False)
     receipt_date = db.Column(db.DateTime, nullable=False)
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     receipt_image_url = db.Column(db.String)
-    is_ocr_extracted = db.Column(db.Boolean, default=False)  # New field
+    is_ocr_extracted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
