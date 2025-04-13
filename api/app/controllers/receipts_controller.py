@@ -12,6 +12,7 @@ from app import db
 from app.models import Receipt, OcrBase, OcrDetails
 from pdf2image import convert_from_path
 from google.cloud import documentai
+from app.utils.ocr_utils import perform_ocr_with_document_ai
 
 api = Namespace('receipts', description="Receipt operations")
 
@@ -240,7 +241,7 @@ class PerformOCRController(Resource):
         if not os.path.exists(file_path):
             abort(404, description="Receipt image file not found")
 
-        ocr_data = self.perform_ocr_with_document_ai(file_path)
+        ocr_data = perform_ocr_with_document_ai(file_path)
 
         receipt.confidence_score = ocr_data['avg_confidence']
         receipt.is_flagged = ocr_data['avg_confidence'] < 0.95
@@ -248,22 +249,8 @@ class PerformOCRController(Resource):
         if ocr_data['total_amount'] is not None:
             receipt.total_amount = ocr_data['total_amount']
 
-        ocr_base = OcrBase(
-            receipt_id=receipt_id,
-            created_by=3,
-            modified_by=3
-        )
-        db.session.add(ocr_base)
-        db.session.commit()
-
-        for result in ocr_data['ocr_results']:
-            db.session.add(OcrDetails(
-                ocr_base_id=ocr_base.ocr_base_id,
-                field_type=result['type'],
-                text_value=result['text_value'],
-                normalized_value=result['normalized_value'],
-                confidence=result['confidence']
-            ))
+        # Save OCR results to the database using the utility function
+        self.save_ocr_data(receipt_id, ocr_data)
         db.session.commit()
 
         return {
@@ -299,50 +286,27 @@ class PerformOCRController(Resource):
             } for d in ocr_details]
         }, 200
 
-    def perform_ocr_with_document_ai(self, file_path):
-        project_id = 'quick-receipts-450104'
-        location = 'us'
-        processor_id = 'f9f60237ff49ce2d'
+    def save_ocr_data(receipt_id, ocr_data, created_by=3, modified_by=3):
+        # Create the OcrBase entry
+        ocr_base = OcrBase(
+            receipt_id=receipt_id,
+            created_by=created_by,
+            modified_by=modified_by
+        )
+        db.session.add(ocr_base)
+        db.session.commit()
 
-        mime_type = {
-            '.pdf': 'application/pdf',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg'
-        }.get(os.path.splitext(file_path)[-1].lower())
+        # Create the OcrDetails entries
+        for result in ocr_data['ocr_results']:
+            ocr_detail = OcrDetails(
+                ocr_base_id=ocr_base.ocr_base_id,
+                field_type=result['type'],
+                text_value=result['text_value'],
+                normalized_value=result['normalized_value'],
+                confidence=result['confidence']
+            )
+            db.session.add(ocr_detail)
 
-        if not mime_type:
-            raise ValueError("Unsupported file type")
+        db.session.commit()
 
-        opts = {"api_endpoint": f"{location}-documentai.googleapis.com"}
-        client = documentai.DocumentProcessorServiceClient(client_options=opts)
-        resource = client.processor_path(project_id, location, processor_id)
-
-        with open(file_path, "rb") as f:
-            raw_document = documentai.RawDocument(content=f.read(), mime_type=mime_type)
-
-        result = client.process_document(request=documentai.ProcessRequest(name=resource, raw_document=raw_document))
-        entities = [{
-            "type": e.type_,
-            "text_value": e.text_anchor.content or e.mention_text,
-            "normalized_value": getattr(e.normalized_value, 'text', None),
-            "confidence": getattr(e, 'confidence', 0.0)
-        } for e in result.document.entities]
-
-        for e in result.document.entities:
-            for prop in e.properties:
-                entities.append({
-                    "type": prop.type_,
-                    "text_value": prop.text_anchor.content or prop.mention_text,
-                    "normalized_value": getattr(prop.normalized_value, 'text', None),
-                    "confidence": getattr(prop, 'confidence', 0.0)
-                })
-
-        avg_confidence = sum(e['confidence'] for e in entities) / len(entities) if entities else 0.0
-        total_amount = next((float(e['normalized_value']) for e in entities if e['type'] == 'total_amount' and e['normalized_value']), None)
-
-        return {
-            'ocr_results': entities,
-            'avg_confidence': avg_confidence,
-            'total_amount': total_amount
-        }
+        return ocr_base.ocr_base_id  # Return the OcrBase ID if needed
