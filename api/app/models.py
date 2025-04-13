@@ -72,6 +72,12 @@ class Receipt(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # NEW fields for background processing
+    ocr_status = db.Column(db.String(20), default='pending')  # 'pending', 'processing', 'done', 'failed'
+    ocr_attempts = db.Column(db.Integer, default=0)
+    last_ocr_attempt = db.Column(db.DateTime)
+    ocr_error_message = db.Column(db.Text, nullable=True)
+
     user = db.relationship('User', backref='receipts')
 
 class OcrBase(db.Model):
