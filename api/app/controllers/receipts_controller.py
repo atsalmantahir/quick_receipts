@@ -223,7 +223,7 @@ class ReceiptController(Resource):
                 cv2.imwrite(extracted_image_path, receipt_image)
 
                 # Store each receipt entry in the database
-                user_id = 8  # Replace with actual user ID
+                user_id = 3  # Replace with actual user ID
                 receipt_date = datetime.now()
                 total_amount = 99.99  # Placeholder total amount
 
@@ -256,42 +256,6 @@ class ReceiptController(Resource):
             'receipt_image_url': receipt.receipt_image_url,
             'is_ocr_extracted': receipt.is_ocr_extracted,
             'total_amount': str(receipt.total_amount)} for receipt in receipts], 200
-
-
-    def perform_ocr_with_document_ai(self, file_path):
-        """
-        Perform OCR using Google Document AI
-        """
-        project_id = 'quick-receipts-450104'  # Replace with your Google Cloud project ID
-        location = 'us'  # Replace with your processor location
-        processor_id = 'f9f60237ff49ce2d'  # Replace with your processor ID
-
-        # Determine mime_type based on the file extension
-        if file_path.endswith('.pdf'):
-            mime_type = 'application/pdf'
-        elif file_path.endswith('.png'):
-            mime_type = 'image/png'
-        elif file_path.lower().endswith(('.jpg', '.jpeg')):
-            mime_type = 'image/jpeg'  # Correct MIME type for JPEG images
-        else:
-            raise ValueError("Unsupported file type. Only PDF, PNG and JPG files are supported.")
-
-        # Process the document using Google Document AI
-        document = self.online_process(project_id, location, processor_id, file_path, mime_type)
-
-        # Extract entities from the document
-        entities_data = self.extract_entities(document)
-
-        # Format the OCR results to match the expected structure
-        ocr_results = []
-        for entity in entities_data:
-            ocr_results.append({
-                'type': entity['type'],
-                'text_value': entity['text_value'],
-                'normalized_value': entity['normalized_value'] or '',
-                'confidence': entity['confidence']})
-
-        return ocr_results
 
     def online_process(self, project_id: str, location: str, processor_id: str, file_path: str, mime_type: str):
         """
@@ -379,6 +343,26 @@ class ReceiptDetailController(Resource):
             return {'message': 'Failed to delete receipt'}, 500
 
 
+@api.route('/<int:receipt_id>/flag')
+class FlagReceipt(Resource):
+    def post(self, receipt_id):
+        """Mark a receipt for manual review"""
+        receipt = Receipt.query.get_or_404(receipt_id)
+        receipt.is_flagged = True
+        db.session.commit()
+        return {'message': 'Receipt flagged for review'}
+
+@api.route('/flagged')
+class FlaggedReceipts(Resource):
+    def get(self):
+        """Get all flagged receipts"""
+        flagged = Receipt.query.filter_by(is_flagged=True).all()
+        return [{
+            'receipt_id': r.receipt_id,
+            'confidence': r.confidence_score,
+            'image_url': r.receipt_image_url
+        } for r in flagged]
+
 
 @api.route('/<int:receipt_id>/ocr')
 class PerformOCRController(Resource):
@@ -390,6 +374,7 @@ class PerformOCRController(Resource):
             raise FileNotFoundError(f"Credentials file not found at: {credentials_path}")
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 
+    # Modified post() method in PerformOCRController
     def post(self, receipt_id):
         """
         Perform OCR on a receipt image using Google Document AI
@@ -399,19 +384,27 @@ class PerformOCRController(Resource):
             abort(404, description="Receipt not found")
 
         try:
-            # Get the file path from the receipt image URL
+            # Get the file path
             upload_folder = os.path.join(self.app.root_path, 'uploads', 'receipts')
             file_path = os.path.join(upload_folder, receipt.receipt_image_url)
 
-            # Check if the file exists
             if not os.path.exists(file_path):
                 abort(404, description="Receipt image file not found")
 
-            # Perform OCR using Google Document AI
-            ocr_results = self.perform_ocr_with_document_ai(file_path)
+            # Perform OCR with confidence tracking
+            ocr_data = self.perform_ocr_with_document_ai(file_path)
+
+            # Update receipt with confidence and auto-flagging
+            receipt.confidence_score = ocr_data['avg_confidence']
+            receipt.is_flagged = ocr_data['avg_confidence'] < 0.95  # 95% threshold
+            receipt.is_ocr_extracted = True
+            
+            # Update total amount if detected
+            if ocr_data['total_amount'] is not None:
+                receipt.total_amount = ocr_data['total_amount']
 
             # Create OcrBase entry
-            user_id = 8  # Replace with the actual user ID from the session or request
+            user_id = 3  # Replace with actual user ID
             ocr_base = OcrBase(
                 receipt_id=receipt_id,
                 created_by=user_id,
@@ -421,7 +414,7 @@ class PerformOCRController(Resource):
             db.session.commit()
 
             # Create OcrDetails entries
-            for result in ocr_results:
+            for result in ocr_data['ocr_results']:
                 ocr_detail = OcrDetails(
                     ocr_base_id=ocr_base.ocr_base_id,
                     field_type=result['type'],
@@ -431,19 +424,21 @@ class PerformOCRController(Resource):
                 )
                 db.session.add(ocr_detail)
 
-            # Update the Receipt table to mark OCR as extracted
-            receipt.is_ocr_extracted = True
+            # Commit all changes
             db.session.commit()
 
             return {
                 'message': 'OCR completed successfully',
                 'receipt_id': receipt_id,
-                'ocr_results': ocr_results,
+                'confidence': receipt.confidence_score,
+                'is_flagged': receipt.is_flagged,
+                'ocr_results': ocr_data['ocr_results'],
             }, 200
+
         except Exception as e:
             db.session.rollback()
             self.app.logger.error(f"Error performing OCR: {str(e)}")
-            return {'message': f"Failed to perform OCR, {str(e)}"}, 500
+            return {'message': f"Failed to perform OCR: {str(e)}"}, 500
 
     def get(self, receipt_id):
         """
@@ -483,41 +478,49 @@ class PerformOCRController(Resource):
 
         return response_data, 200
     
+    # Modified perform_ocr_with_document_ai() with confidence tracking
     def perform_ocr_with_document_ai(self, file_path):
         """
-        Perform OCR using Google Document AI
+        Perform OCR using Google Document AI with confidence tracking
         """
         # Google Document AI configuration
-        project_id = 'quick-receipts-450104'  # Replace with your Google Cloud project ID
-        location = 'us'  # Replace with your processor location
-        processor_id = 'f9f60237ff49ce2d'  # Replace with your processor ID
+        project_id = 'quick-receipts-450104'
+        location = 'us'
+        processor_id = 'f9f60237ff49ce2d'
 
-        # Determine mime_type based on the file extension
+        # Determine mime_type
         if file_path.endswith('.pdf'):
             mime_type = 'application/pdf'
         elif file_path.endswith('.png'):
             mime_type = 'image/png'        
         elif file_path.lower().endswith(('.jpg', '.jpeg')):
-            mime_type = 'image/jpeg'  # Correct MIME type for JPEG images
+            mime_type = 'image/jpeg'
         else:
-            raise ValueError("Unsupported file type. Only PDF, JPG and PNG files are supported.")
+            raise ValueError("Unsupported file type")
 
-        # Process the document using Google Document AI
+        # Process document
         document = self.online_process(project_id, location, processor_id, file_path, mime_type)
 
-        # Extract entities from the document
+        # Extract entities and calculate confidence
         entities_data = self.extract_entities(document)
+        
+        # Calculate average confidence score
+        total_confidence = sum(e['confidence'] for e in entities_data)
+        avg_confidence = total_confidence / len(entities_data) if entities_data else 0.0
+        
+        # Find total amount (if detected)
+        total_amount = next(
+            (float(e['normalized_value']) 
+            for e in entities_data 
+            if e['type'] == 'total_amount' and e['normalized_value']),
+            None
+        )
 
-        # Format the OCR results to match the expected structure
-        ocr_results = []
-        for entity in entities_data:
-            ocr_results.append({
-                'type': entity['type'],
-                'text_value': entity['text_value'],
-                'normalized_value': entity['normalized_value'] or '',
-                'confidence': entity['confidence']})
-
-        return ocr_results
+        return {
+            'ocr_results': entities_data,
+            'avg_confidence': avg_confidence,
+            'total_amount': total_amount
+        }
 
     def online_process(self, project_id: str, location: str, processor_id: str, file_path: str, mime_type: str):
         """
