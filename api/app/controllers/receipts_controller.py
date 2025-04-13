@@ -141,14 +141,34 @@ class ReceiptController(Resource):
             return {'message': f"Failed to process receipt: {str(e)}"}, 500
 
     def get(self):
-        receipts = Receipt.query.all()
-        return [{
+        # Extract pagination params from query string
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
+        # Query with ordering by updated_at then created_at (both descending)
+        paginated = Receipt.query.order_by(
+            Receipt.updated_at.desc(),
+            Receipt.created_at.desc()
+        ).paginate(page=page, per_page=per_page, error_out=False)
+
+        results = [{
             'receipt_id': r.receipt_id,
             'user_id': r.user_id,
             'receipt_image_url': r.receipt_image_url,
             'is_ocr_extracted': r.is_ocr_extracted,
-            'total_amount': str(r.total_amount)
-        } for r in receipts], 200
+            'confidence_score': r.confidence_score,
+            'total_amount': str(r.total_amount),
+            'created_at': r.created_at.isoformat(),
+            'updated_at': r.updated_at.isoformat()
+        } for r in paginated.items]
+
+        return {
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'current_page': paginated.page,
+            'per_page': paginated.per_page,
+            'receipts': results
+        }, 200
 
 
 @api.route('/<int:receipt_id>')
