@@ -38,4 +38,10 @@ const getOcrData = async (id) => {
     return response.data;
 };
 
-export { getReceipts, createReceipt, updateReceipt, deleteReceipt, getReceiptById, performOCR, getOcrData };
+const getReceiptPreviewUrl = async (filename) => {
+    const response = await apiClient.get(`${RECEIPTS_URL}/preview/${filename}`);
+    console.log(response)
+    return response.data;
+};
+
+export { getReceipts, createReceipt, updateReceipt, deleteReceipt, getReceiptById, performOCR, getOcrData, getReceiptPreviewUrl };

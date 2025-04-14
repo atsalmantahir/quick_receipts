@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 from flask_restx import Namespace, Resource
-from flask import request, abort
+from flask import request, abort, send_from_directory
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -182,6 +182,7 @@ class ReceiptDetailController(Resource):
         return {
             'receipt_id': receipt.receipt_id,
             'user_id': receipt.user_id,
+            'confidence_score': receipt.confidence_score,
             'receipt_image_url': receipt.receipt_image_url,
             'total_amount': str(receipt.total_amount),
             'receipt_date': receipt.receipt_date.isoformat(),
@@ -221,6 +222,22 @@ class FlaggedReceipts(Resource):
             'image_url': r.receipt_image_url
         } for r in flagged]
 
+
+@api.route('/preview/<string:filename>')
+class ReceiptImagePreview(Resource):
+    def __init__(self, api=None, *args, **kwargs):
+        super().__init__(api=api, *args, **kwargs)
+        self.app = api.app
+
+
+    def get(self, filename):
+        upload_folder = os.path.join(self.app.root_path, 'uploads', 'receipts')
+        file_path = os.path.join(upload_folder, filename)
+
+        if not os.path.exists(file_path):
+            abort(404, description="Image file not found")
+
+        return send_from_directory(upload_folder, filename)
 
 @api.route('/<int:receipt_id>/ocr')
 class PerformOCRController(Resource):
